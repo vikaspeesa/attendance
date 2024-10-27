@@ -39,7 +39,14 @@ def video_frame_callback(frame):
         print('Save data to database')
     return av.VideoFrame.from_ndarray(pred_img,format="bgr24")
 
+# webrtc_streamer(key="realtimePrediction",video_frame_callback=video_frame_callback,
+#                  rtc_configuration={
+#         "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+#     })
+
 webrtc_streamer(key="realtimePrediction",video_frame_callback=video_frame_callback,
-                 rtc_configuration={
-        "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-    })
+                rtc_configuration={
+                    "iceServers":[{
+                        "urls":["stun:stun.l.google.com:19302"]
+                    }]
+                })
