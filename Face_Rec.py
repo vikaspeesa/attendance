@@ -1,3 +1,4 @@
+import logging
 import onnx
 import numpy as np
 import pandas as pd
@@ -154,6 +155,55 @@ class RealTimePred:
         return test_copy
     
 class RegistrationForm:
+    def __init__(self):
+        self.sample = 0
+
+    def reset(self):
+        self.sample = 0
+
+    def get_embedding(self, frame):
+        results = faceapp.get(frame, max_num=1)
+
+        if results is None or len(results) == 0:
+            logging.warning("No faces detected.")
+            return frame, None
+
+        for res in results:
+            self.sample += 1
+            x1, y1, x2, y2 = res['bbox'].astype(int)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
+            text = f"samples = {self.sample}"
+
+            cv2.putText(frame, text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 1)
+            embeddings = res['embedding']
+
+        return frame, embeddings
+
+    def save_data_in_db(self, name, role):
+        if name is None or name.strip() == '':
+            logging.error("Invalid name provided.")
+            return 'name_false'
+
+        key = f'{name}@{role}' if role else f'{name}'
+
+        if 'face_embedding.txt' not in os.listdir():
+            logging.error("Embedding file not found.")
+            return 'file_false'
+
+        x_array = np.loadtxt('face_embedding.txt', dtype=np.float32)
+        receieved_samples = int(x_array.size / 512)
+        x_array = x_array.reshape(receieved_samples, 512)
+        x_array = np.asarray(x_array)
+        x_mean = x_array.mean(axis=1)
+        x_mean_bytes = x_mean.tobytes()
+
+        r.hset(name='academy:register', key=key, value=x_mean_bytes)
+        os.remove('face_embedding.txt')
+        self.reset()
+
+        logging.info(f"Data saved in DB for {name} with role {role}.")
+        return True
+# class RegistrationForm:
 
     def __init__(self):
         self.sample = 0
